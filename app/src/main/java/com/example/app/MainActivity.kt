@@ -15,17 +15,17 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.lifecycle.Observer
+import androidx.lifecycle.Observer // Імпорт Observer з lifecycle
 import androidx.recyclerview.widget.LinearLayoutManager // Для RecyclerView
 import androidx.recyclerview.widget.RecyclerView // Для RecyclerView
 import com.example.app.data.AppDatabase
 import com.example.app.data.PlaylistRepository
 import com.example.app.models.Playlist
-import com.example.app.ui.playlists.PlaylistAdapter // Адаптер для списку плейлистів
+import com.example.app.models.Sound // Імпорт Sound
+import com.example.app.ui.playlists.PlaylistAdapter // Адаптер для списку плейлистів/звуків
 import com.example.app.ui.playlists.PlaylistsViewModel
 import com.example.app.ui.playlists.ViewModelFactory
 import com.google.android.material.textfield.TextInputLayout
-
 
 class MainActivity : AppCompatActivity() {
 
@@ -74,44 +74,57 @@ class MainActivity : AppCompatActivity() {
 
     // Налаштування RecyclerView
     private fun setupRecyclerView() {
-        val recyclerView: RecyclerView = findViewById(R.id.playlistsRecyclerView) // Знаходимо RecyclerView
+        val recyclerView: RecyclerView = findViewById(R.id.playlistsRecyclerView)
 
-        // Створюємо адаптер, передаємо лямбди для обробки кліків
         playlistAdapter = PlaylistAdapter(
-            onPlaylistClick = { playlist ->
-                // Клік на плейлист -> відкрити PlaylistDetailsActivity
-                Log.d("PlaylistDebug", "Clicked on playlist: ${playlist.name}, ID: ${playlist.id}")
-                val intent = Intent(this, PlaylistDetailsActivity::class.java)
-                intent.putExtra(PlaylistDetailsActivity.EXTRA_PLAYLIST_ID, playlist.id)
-                intent.putExtra(PlaylistDetailsActivity.EXTRA_PLAYLIST_NAME, playlist.name)
-                startActivity(intent)
+            onPlaylistDeleteClick = { playlist ->
+                showDeleteConfirmationDialog(playlist)
             },
-            onDeleteClick = { playlist ->
-                // Клік на кнопку видалення -> показати діалог підтвердження
-                Log.d("PlaylistDebug", "Delete clicked for playlist: ${playlist.name}")
-                showDeleteConfirmationDialog(playlist) // Ця функція у нас вже є
+            onPlaylistAddSoundClick = { playlist ->
+                showAddSoundDialog(playlist)
+            },
+            onPlaylistFavoriteClick = { playlist ->
+                Log.d("MainActivity", "Favorite clicked for playlist: ${playlist.name}")
+                Toast.makeText(this, "Функція 'Улюблене' для плейлистів ще не реалізована", Toast.LENGTH_SHORT).show()
+            },
+            onPlaylistToggleExpandClick = { playlist ->
+                playlistsViewModel.togglePlaylistExpansion(playlist.id)
+            },
+            onPlaylistRenameClick = { playlist ->
+                Log.d("MainActivity", "Rename clicked for playlist: ${playlist.name}")
+                showRenamePlaylistDialog(playlist) // Викликаємо новий діалог
+            },
+            onSoundFavoriteClick = { sound, isCurrentlyFavorite -> // <-- Обробник для сердечка звуку
+                Log.d("MainActivity", "Favorite clicked for sound: ${sound.name}")
+                playlistsViewModel.toggleFavoriteStatus(sound)
+                Toast.makeText(this, "Функція 'Улюблене' для звуків ще не реалізована до кінця", Toast.LENGTH_SHORT).show()
+                // TODO: Потрібно оновлювати UI після зміни статусу isFavorite у ViewModel/DB
+            },
+            onSoundDeleteClick = { sound, playlistId -> // <-- Обробник для кошика звуку
+                Log.d("MainActivity", "Delete clicked for sound: ${sound.name} from playlist ID: $playlistId")
+                playlistsViewModel.removeSoundFromPlaylist(sound.id, playlistId)
+                Toast.makeText(this,"Видалено '${sound.name}'", Toast.LENGTH_SHORT).show()
             }
         )
 
-        // Встановлюємо адаптер та LayoutManager
         recyclerView.adapter = playlistAdapter
-        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.layoutManager = LinearLayoutManager(this) // Вертикальний список
     }
 
-    // Налаштування обробників кліків для кнопок
+    // Налаштування обробників кліків для кнопок (крім тих, що в RecyclerView)
     private fun setupClickListeners() {
         // Кнопки зміни теми
         themeToggleButton1.setOnClickListener { toggleTheme() }
         themeToggleButton2.setOnClickListener { toggleTheme() }
 
-        // Кнопка створення плейлиста
+        // Кнопка створення плейлиста (папка)
         val folderButton: ImageButton = findViewById(R.id.folderButton4)
         folderButton.setOnClickListener {
             Log.d("PlaylistDebug", "Folder button clicked - showing create dialog")
             showCreatePlaylistDialog()
         }
 
-        // Налаштування переходів для інших кнопок
+        // Налаштування переходів для інших навігаційних кнопок
         setupNavigationButtons()
     }
 
@@ -122,29 +135,25 @@ class MainActivity : AppCompatActivity() {
             R.id.searchButton2 to SearchPage::class.java,
             R.id.galleryButton7 to GalleryPage::class.java,
             R.id.notesButton8 to NotesPage::class.java
-            // R.id.closeButton1 // Поки не ясно, що робить
-            // R.id.likeButton3 // Для майбутнього функціоналу "Улюблене"
-            // R.id.cloudappButton5 // Поки не ясно, що робить
         )
 
         for ((id, activityClass) in buttonActivityPairs) {
-            findViewById<ImageButton>(id).setOnClickListener {
+            // Перевіряємо, чи кнопка існує, перш ніж встановити слухач
+            findViewById<ImageButton>(id)?.setOnClickListener {
                 val intent = Intent(this, activityClass)
                 startActivity(intent)
-            }
-        }
-        // Обробник для closeButton1, якщо він має просто закривати додаток або повертатись
-        findViewById<ImageButton>(R.id.closeButton1)?.setOnClickListener {
-            // finish() // Закрити поточну Activity
-            // Або інша логіка
-            Log.d("AppFlow", "Close button 1 clicked")
+            } ?: Log.w("SetupNav", "Button with ID $id not found")
         }
 
+        findViewById<ImageButton>(R.id.closeButton1)?.setOnClickListener {
+            Log.d("AppFlow", "Close button 1 clicked")
+            // finish() // Можливо, закрити додаток?
+        }
     }
 
-    // Спостереження за списком плейлистів та оновлення RecyclerView
+    // Спостереження за змішаним списком (плейлисти + звуки) та оновлення RecyclerView
     private fun observePlaylists() {
-        val recyclerView: RecyclerView? = findViewById(R.id.playlistsRecyclerView) // Робимо nullable на випадок помилки
+        val recyclerView: RecyclerView? = findViewById(R.id.playlistsRecyclerView)
         val emptyTextView: TextView? = findViewById(R.id.empty_playlists_text)
 
         if (recyclerView == null || emptyTextView == null) {
@@ -152,21 +161,22 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        Log.d("PlaylistDebug", "Setting up RecyclerView playlists observer...")
+        Log.d("PlaylistDebug", "Setting up MIXED list observer (Headers + Sounds)...")
 
-        playlistsViewModel.allPlaylists.observe(this, Observer { playlists ->
-            Log.d("PlaylistDebug", "Observer received update for RecyclerView! Playlists count: ${playlists?.size ?: "null"}")
+        // Спостерігаємо за LiveData 'playlistItems' з ViewModel
+        playlistsViewModel.playlistItems.observe(this, Observer { items ->
+            Log.d("PlaylistDebug", "Observer received update for MIXED list! Items count: ${items?.size ?: "null"}")
 
-            // Передаємо список адаптеру
-            playlistAdapter.submitList(playlists)
+            // Передаємо змішаний список адаптеру
+            playlistAdapter.submitList(items)
 
             // Показуємо/ховаємо відповідні елементи
-            if (playlists.isNullOrEmpty()) {
-                Log.d("PlaylistDebug", "Playlist list IS empty or null. Showing empty text.")
+            if (items.isNullOrEmpty()) {
+                Log.d("PlaylistDebug", "Mixed list IS empty or null. Showing empty text.")
                 emptyTextView.visibility = View.VISIBLE
                 recyclerView.visibility = View.GONE
             } else {
-                Log.d("PlaylistDebug", "Playlist list is NOT empty. Showing RecyclerView.")
+                Log.d("PlaylistDebug", "Mixed list is NOT empty. Showing RecyclerView.")
                 emptyTextView.visibility = View.GONE
                 recyclerView.visibility = View.VISIBLE
             }
@@ -189,7 +199,8 @@ class MainActivity : AppCompatActivity() {
         builder.setPositiveButton("Створити") { dialog, _ ->
             val playlistName = input.text.toString().trim()
             if (playlistName.isNotEmpty()) {
-                val currentPlaylists = playlistsViewModel.allPlaylists.value
+                // Використовуємо rawPlaylists для перевірки ліміту
+                val currentPlaylists = playlistsViewModel.rawPlaylists.value
                 val maxPlaylists = 5 // Ліміт
 
                 if (currentPlaylists != null && currentPlaylists.size >= maxPlaylists) {
@@ -220,11 +231,103 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    // Діалог для перейменування плейлиста
+    private fun showRenamePlaylistDialog(playlist: Playlist) {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Перейменувати плейлист")
+
+        // Створюємо поле вводу і встановлюємо поточну назву
+        val inputLayout = TextInputLayout(this).apply {
+            setPadding(50, 30, 50, 30)
+            hint = "Нова назва"
+        }
+        val input = EditText(this).apply {
+            setText(playlist.name) // Встановлюємо поточну назву в поле вводу
+            setSelection(playlist.name.length) // Ставимо курсор в кінець тексту
+        }
+        inputLayout.addView(input)
+        builder.setView(inputLayout)
+
+        // Кнопка "Зберегти"
+        builder.setPositiveButton("Зберегти") { dialog, _ ->
+            val newName = input.text.toString().trim()
+            // Перевіряємо, чи назва не порожня і чи вона змінилася
+            if (newName.isNotEmpty() && newName != playlist.name) {
+                // Викликаємо метод ViewModel для оновлення назви
+                playlistsViewModel.updatePlaylistName(playlist.id, newName)
+                Toast.makeText(this, "Плейлист перейменовано на '$newName'", Toast.LENGTH_SHORT).show()
+            } else if (newName.isEmpty()) {
+                Toast.makeText(this, "Назва не може бути порожньою", Toast.LENGTH_SHORT).show()
+            }
+            dialog.dismiss() // Закриваємо діалог
+        }
+        // Кнопка "Скасувати"
+        builder.setNegativeButton("Скасувати") { dialog, _ ->
+            dialog.cancel()
+        }
+
+        builder.show() // Показуємо діалог
+    }
+
+    // Діалог для додавання ЗВУКІВ до КОНКРЕТНОГО плейлиста
+    private fun showAddSoundDialog(targetPlaylist: Playlist) {
+        Log.d("AddSoundDialog", "Showing dialog for playlist: ${targetPlaylist.name}")
+
+        // Тепер отримуємо LiveData зі звуками через ViewModel (ПУБЛІЧНЕ ПОЛЕ)
+        val allSoundsLiveData = playlistsViewModel.allSounds // <-- ВИПРАВЛЕНО: Використовуємо публічне поле
+
+        allSoundsLiveData.observe(this) { allSounds -> // <-- ВИПРАВЛЕНО: Лямбда-синтаксис
+            // Видаляємо спостерігач одразу, щоб діалог не з'являвся повторно
+            if (allSounds != null) {
+                allSoundsLiveData.removeObservers(this)
+                Log.d("AddSoundDialog", "Received ${allSounds.size} sounds. Removing observer.")
+            } else {
+                Log.d("AddSoundDialog", "Received null sound list.")
+                return@observe
+            }
+
+            if (allSounds.isEmpty()) {
+                Toast.makeText(this@MainActivity, "Немає доступних звуків для додавання", Toast.LENGTH_SHORT).show()
+                return@observe
+            }
+
+            // Логіка побудови діалогу (без змін)
+            val soundNames = allSounds.map { it.name }.toTypedArray()
+            val soundIds = allSounds.map { it.id }.toTypedArray()
+            val selectedSounds = BooleanArray(soundNames.size)
+
+            AlertDialog.Builder(this@MainActivity)
+                .setTitle("Додати до '${targetPlaylist.name}'")
+                .setMultiChoiceItems(soundNames, selectedSounds) { _, which, isChecked ->
+                    selectedSounds[which] = isChecked
+                }
+                .setPositiveButton("Додати") { _, _ ->
+                    val soundsToAdd = mutableListOf<String>()
+                    for (i in selectedSounds.indices) {
+                        if (selectedSounds[i]) {
+                            soundsToAdd.add(soundIds[i])
+                        }
+                    }
+                    if (soundsToAdd.isNotEmpty()) {
+                        Log.d("AddSoundDialog", "Adding sound IDs: $soundsToAdd to playlist ${targetPlaylist.id}")
+                        playlistsViewModel.addSoundsToPlaylist(soundsToAdd, targetPlaylist.id) // Викликаємо метод ViewModel
+                        Toast.makeText(this@MainActivity, "Додано ${soundsToAdd.size} звуків до '${targetPlaylist.name}'", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Log.d("AddSoundDialog", "No sounds selected to add.")
+                    }
+                }
+                .setNegativeButton("Скасувати", null)
+                .show()
+            // Кінець логіки діалогу
+
+        } // <-- Кінець лямбди observe
+    }
+
+
     // --- Функції для теми ---
     private fun updateBackgroundAndButton() {
         val isNight = AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES
         mainLayout.setBackgroundResource(if (isNight) R.drawable.fondark else R.drawable.fonday)
-        // Іконки кнопок теми оновлюються в updateCircleImages
     }
 
     private fun toggleTheme() {
@@ -233,7 +336,7 @@ class MainActivity : AppCompatActivity() {
             if (nightMode == AppCompatDelegate.MODE_NIGHT_YES) AppCompatDelegate.MODE_NIGHT_NO
             else AppCompatDelegate.MODE_NIGHT_YES
         )
-        recreate() // Перезапуск Activity для застосування теми
+        recreate()
     }
 
     private fun updateCircleImages() {
@@ -244,17 +347,14 @@ class MainActivity : AppCompatActivity() {
             R.id.likeButton3 to if (isNight) R.drawable.like_night else R.drawable.like,
             R.id.folderButton4 to if (isNight) R.drawable.folder_night else R.drawable.folder,
             R.id.cloudappButton5 to if (isNight) R.drawable.cloudapp_night else R.drawable.cloudapp,
-            R.id.themeButton6 to if (isNight) R.drawable.day_night else R.drawable.night, // Тема (альтернативна)
+            R.id.themeButton6 to if (isNight) R.drawable.day_night else R.drawable.night,
             R.id.galleryButton7 to if (isNight) R.drawable.gallery_night else R.drawable.gallery,
             R.id.notesButton8 to if (isNight) R.drawable.notes_night else R.drawable.notes,
             R.id.settingsButton to if (isNight) R.drawable.settings_night else R.drawable.settings,
-            R.id.themeButton to if (isNight) R.drawable.night else R.drawable.cloud // Тема (основна)
-            // R.id.arrow - оновлюється в observePlaylists, якщо він використовується
+            R.id.themeButton to if (isNight) R.drawable.night else R.drawable.cloud
         )
         resMap.forEach { (id, resId) ->
-            findViewById<ImageButton>(id)?.setImageResource(resId) // Додав ?. для безпеки
+            findViewById<ImageButton>(id)?.setImageResource(resId)
         }
     }
-    // --- Кінець функцій для теми ---
-
 }

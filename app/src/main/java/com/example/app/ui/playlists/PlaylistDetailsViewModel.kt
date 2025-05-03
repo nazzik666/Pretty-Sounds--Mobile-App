@@ -50,18 +50,18 @@ class PlaylistDetailsViewModel(private val repository: PlaylistRepository) : Vie
         }
     }
 
-    // Функція для додавання звуку до плейлиста
+    // Функція для додавання звуку до вказаного плейлиста
     fun addSoundToSpecificPlaylist(soundId: String, playlistId: Int) {
         viewModelScope.launch {
-            repository.addSoundToPlaylist(soundId, playlistId)
+            repository.addSoundsToPlaylist(listOf(soundId), playlistId)
         }
     }
 
-    // Функція для додавання звуку до ПОТОЧНОГО плейлиста
+    // Функція для додавання звуку до ПОТОЧНОГО плейлиста, що відображається в цій ViewModel
     fun addSoundToCurrentPlaylist(soundId: String) {
         _playlistId.value?.let { currentPlaylistId ->
             viewModelScope.launch {
-                repository.addSoundToPlaylist(soundId, currentPlaylistId)
+                repository.addSoundsToPlaylist(listOf(soundId), currentPlaylistId)
             }
         }
     }

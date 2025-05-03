@@ -25,6 +25,9 @@ interface PlaylistDao {
     @Query("SELECT * FROM playlists WHERE id = :playlistId") // Отримати плейлист за його ID
     suspend fun getPlaylistById(playlistId: Int): Playlist?
 
+    @Query("UPDATE playlists SET name = :newName WHERE id = :playlistId")
+    suspend fun updatePlaylistName(playlistId: Int, newName: String)
+
     // --- Операції зі звуками (потрібні для плейлистів) ---
 
     @Insert(onConflict = OnConflictStrategy.IGNORE) // Додати звук, якщо його ще немає
@@ -42,4 +45,7 @@ interface PlaylistDao {
     // --- Тестові дані (опціонально, для початкового заповнення) ---
     @Query("SELECT COUNT(*) FROM sounds") // Перевірити, чи є звуки в базі
     suspend fun getSoundCount(): Int
+
+    @Query("SELECT * FROM sounds WHERE id IN (:soundIds)")
+    suspend fun getSoundsByIdsSuspend(soundIds: List<String>): List<Sound> // Потрібна suspend версія
 }
