@@ -1,0 +1,8 @@
+<resources>
+    <string name="theme_toggle">Switch Theme</string>
+    <string name="app">Pretty Sound</string>
+    <string name="open_second_page">Open second page</string>
+    <string name="info_button_image_desc">Иконка информации</string>
+
+
+</resources>
