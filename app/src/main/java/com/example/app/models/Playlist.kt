@@ -6,8 +6,10 @@ import androidx.room.TypeConverters
 import com.example.app.data.ListConverter
 
 @Entity(tableName = "playlists") // Таблиця для плейлистів
+@TypeConverters(ListConverter::class) // Вказую конвертер
 data class Playlist(
     @PrimaryKey(autoGenerate = true) val id: Int = 0, // ID плейлиста генерується автоматично
     val name: String,              // Назва плейлиста
-    val soundIds: List<String>     // Список ID звуків, що входять до плейлиста
+    val soundIds: List<String>,     // Список ID звуків, що входять до плейлиста
+    var isFavorite: Boolean = false // Для функціоналу "Улюблене"
 )

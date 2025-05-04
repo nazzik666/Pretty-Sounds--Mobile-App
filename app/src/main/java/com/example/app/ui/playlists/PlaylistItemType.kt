@@ -5,7 +5,7 @@ import com.example.app.models.Sound
 
 // Запечатаний клас (sealed class) для представлення елементів у спільному списку
 sealed class PlaylistItemType {
-    // Додаємо поле isExpanded зі значенням за замовчуванням false
+    // Додаю поле isExpanded зі значенням за замовчуванням false
     data class PlaylistHeader(
         val playlist: Playlist,
         var isExpanded: Boolean = false // <-- ДОДАНО

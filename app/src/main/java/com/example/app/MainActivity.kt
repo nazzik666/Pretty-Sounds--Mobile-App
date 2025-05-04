@@ -70,7 +70,7 @@ class MainActivity : AppCompatActivity() {
         // Запуск спостереження за списком плейлистів
         observePlaylists()
 
-    } // --- Кінець onCreate ---
+    }
 
     // Налаштування RecyclerView
     private fun setupRecyclerView() {
@@ -85,20 +85,18 @@ class MainActivity : AppCompatActivity() {
             },
             onPlaylistFavoriteClick = { playlist ->
                 Log.d("MainActivity", "Favorite clicked for playlist: ${playlist.name}")
-                Toast.makeText(this, "Функція 'Улюблене' для плейлистів ще не реалізована", Toast.LENGTH_SHORT).show()
+                playlistsViewModel.togglePlaylistFavoriteStatus(playlist) // Викликаю метод ViewModel
             },
             onPlaylistToggleExpandClick = { playlist ->
                 playlistsViewModel.togglePlaylistExpansion(playlist.id)
             },
             onPlaylistRenameClick = { playlist ->
                 Log.d("MainActivity", "Rename clicked for playlist: ${playlist.name}")
-                showRenamePlaylistDialog(playlist) // Викликаємо новий діалог
+                showRenamePlaylistDialog(playlist) // Викликаю новий діалог
             },
-            onSoundFavoriteClick = { sound, isCurrentlyFavorite -> // <-- Обробник для сердечка звуку
+            onSoundFavoriteClick = { sound, isCurrentlyFavorite -> // <-- Обробник для Улюбленого звуку
                 Log.d("MainActivity", "Favorite clicked for sound: ${sound.name}")
                 playlistsViewModel.toggleFavoriteStatus(sound)
-                Toast.makeText(this, "Функція 'Улюблене' для звуків ще не реалізована до кінця", Toast.LENGTH_SHORT).show()
-                // TODO: Потрібно оновлювати UI після зміни статусу isFavorite у ViewModel/DB
             },
             onSoundDeleteClick = { sound, playlistId -> // <-- Обробник для кошика звуку
                 Log.d("MainActivity", "Delete clicked for sound: ${sound.name} from playlist ID: $playlistId")
@@ -106,7 +104,6 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this,"Видалено '${sound.name}'", Toast.LENGTH_SHORT).show()
             }
         )
-
         recyclerView.adapter = playlistAdapter
         recyclerView.layoutManager = LinearLayoutManager(this) // Вертикальний список
     }
@@ -148,6 +145,12 @@ class MainActivity : AppCompatActivity() {
         findViewById<ImageButton>(R.id.closeButton1)?.setOnClickListener {
             Log.d("AppFlow", "Close button 1 clicked")
             // finish() // Можливо, закрити додаток?
+        }
+        findViewById<ImageButton>(R.id.likeButton3)?.setOnClickListener {
+            Log.d("Navigation", "Like button clicked, starting FavoritesActivity")
+            // Запускаємо FavoritesActivity через Intent
+            val intent = Intent(this, FavoritesActivity::class.java)
+            startActivity(intent)
         }
     }
 

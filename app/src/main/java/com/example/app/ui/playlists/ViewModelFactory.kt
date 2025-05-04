@@ -17,6 +17,10 @@ class ViewModelFactory(private val repository: PlaylistRepository) : ViewModelPr
             @Suppress("UNCHECKED_CAST")
             return PlaylistDetailsViewModel(repository) as T // Створюю PlaylistDetailsViewModel
         }
+        if (modelClass.isAssignableFrom(FavoritesViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return FavoritesViewModel(repository) as T
+        }
         // Можна додати інші ViewModel тут за потреби
 
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

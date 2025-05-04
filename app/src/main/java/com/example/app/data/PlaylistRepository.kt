@@ -14,6 +14,10 @@ class PlaylistRepository(private val playlistDao: PlaylistDao) {
     // Отримую всі звуки як LiveData
     val allSounds: LiveData<List<Sound>> = playlistDao.getAllSounds()
 
+    // LiveData для списку Улюбленого
+    val favoritePlaylists: LiveData<List<Playlist>> = playlistDao.getFavoritePlaylists()
+    val favoriteSounds: LiveData<List<Sound>> = playlistDao.getFavoriteSounds()
+
     // Функція для створення нового плейлиста
     suspend fun createPlaylist(name: String) {
         val newPlaylist = Playlist(name = name, soundIds = emptyList()) // Створюю плейлист з порожнім списком звуків
@@ -103,11 +107,19 @@ class PlaylistRepository(private val playlistDao: PlaylistDao) {
         }
     }
 
+    // suspend функції для зміни статусу Улюбленого
+    suspend fun setSoundFavoriteStatus(soundId: String, isFavorite: Boolean) {
+        playlistDao.setSoundFavoriteStatus(soundId, isFavorite)
+    }
+    suspend fun setPlaylistFavoriteStatus(playlistId: Int, isFavorite: Boolean) {
+        playlistDao.setPlaylistFavoriteStatus(playlistId, isFavorite)
+    }
+
     // Метод для отримання звуків для конкретного плейлиста
     suspend fun getSoundsForPlaylist(playlistId: Int): List<Sound> {
         val playlist = playlistDao.getPlaylistById(playlistId) // Потрібен getPlaylistById в DAO
         if (playlist != null && playlist.soundIds.isNotEmpty()) {
-            return playlistDao.getSoundsByIdsSuspend(playlist.soundIds) // Використовуємо нову suspend функцію
+            return playlistDao.getSoundsByIdsSuspend(playlist.soundIds) // Використовую нову suspend функцію
         }
         return emptyList()
     }

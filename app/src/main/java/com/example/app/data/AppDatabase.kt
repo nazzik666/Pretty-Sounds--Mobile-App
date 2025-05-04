@@ -15,7 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 // Вказую entities (таблиці), версію БД та чи експортувати схему
-@Database(entities = [Sound::class, Playlist::class], version = 1, exportSchema = false)
+@Database(entities = [Sound::class, Playlist::class], version = 2, exportSchema = false)
 @TypeConverters(ListConverter::class) // Вказую конвертер типів
 abstract class AppDatabase : RoomDatabase() {
 
@@ -35,7 +35,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "pretty_sound_database" // Назва файлу бази даних
                 )
-                    // .fallbackToDestructiveMigration() // Для простоти при зміні версії (видаляє старі дані). На релізі краще робити міграцію.
+                    .fallbackToDestructiveMigration() // Для простоти при зміні версії (видаляє старі дані). На релізі краще робити міграцію.
                     .addCallback(DatabaseCallback(context)) // Додаю callback для початкового заповнення
                     .build()
                 INSTANCE = instance

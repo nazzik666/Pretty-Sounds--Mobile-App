@@ -130,24 +130,37 @@ class PlaylistsViewModel(private val repository: PlaylistRepository) : ViewModel
         viewModelScope.launch {
             val newFavoriteState = !sound.isFavorite
             Log.d("ViewModelAction", "Toggling favorite for sound ${sound.name} to $newFavoriteState")
-            // TODO: Потрібно додати метод в PlaylistRepository та PlaylistDao
-            // для оновлення поля isFavorite в таблиці sounds
             try {
-                // repository.setSoundFavoriteStatus(sound.id, newFavoriteState)
-                Log.w("ViewModelAction", "Favorite status update in DB is not implemented yet!")
-                // Якщо б оновлення в БД відбулось, потрібно було б оновити список.
-                // Оскільки змінюється тільки звук, а не плейлист, _allPlaylists може не оновитись.
-                // Потрібен був би механізм оновлення allSounds або перезапуск MediatorLiveData.
-                // Поки що просто імітуємо зміну і перезапускаємо стан:
+                // ВИКЛИКАЮ МЕТОД РЕПОЗИТОРІЯ
+                repository.setSoundFavoriteStatus(sound.id, newFavoriteState)
+                Log.d("ViewModelAction", "Favorite status update for sound ${sound.id} successful.")
+                // Оскільки змінився тільки Sound, а не Playlist, LiveData _allPlaylists може не оновитись.
+                // Щоб список гарантовано перемалювався з новим статусом зірочки,
+                // "пересмикую" стан розгорнутості.
                 withContext(Dispatchers.Main) { expansionState.value = expansionState.value }
-
             } catch (e: Exception) {
-                Log.e("ViewModelAction", "Error toggling favorite status (not implemented)", e)
+                Log.e("ViewModelAction", "Error toggling sound favorite status", e)
             }
         }
     }
 
-    // НОВА ФУНКЦІЯ для додавання кількох звуків
+    // Функція зміни статусу "Улюблене" для ПЛЕЙЛИСТА
+    fun togglePlaylistFavoriteStatus(playlist: Playlist) {
+        viewModelScope.launch {
+            val newFavoriteState = !playlist.isFavorite
+            Log.d("ViewModelAction", "Toggling favorite for playlist ${playlist.name} to $newFavoriteState")
+            try {
+                repository.setPlaylistFavoriteStatus(playlist.id, newFavoriteState)
+                Log.d("ViewModelAction", "Favorite status update for playlist ${playlist.id} successful.")
+                // Оскільки змінився Playlist, LiveData _allPlaylists має оновитись автоматично,
+                // і MediatorLiveData перерахує список playlistItems. Додаткових дій не потрібно.
+            } catch (e: Exception) {
+                Log.e("ViewModelAction", "Error toggling playlist favorite status", e)
+            }
+        }
+    }
+
+    // Функція для додавання кількох звуків
     fun addSoundsToPlaylist(soundIds: List<String>, playlistId: Int) {
         if (soundIds.isEmpty()) return // Якщо список порожній, нічого не робити
         viewModelScope.launch(Dispatchers.IO) {

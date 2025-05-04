@@ -71,7 +71,6 @@ class PlaylistAdapter(
         when (val item = getItem(position)) {
             is PlaylistItemType.PlaylistHeader -> (holder as PlaylistHeaderViewHolder).bind(item)
             is PlaylistItemType.SoundItem -> (holder as SoundItemViewHolder).bind(item.sound, item.playlistId)
-            // else -> Log.w("AdapterBind", "Unknown item type at position $position") // Обробка інших випадків (наприклад, null)
         }
     }
 
@@ -97,7 +96,7 @@ class PlaylistAdapter(
             // Встановлюємо слухачі кліків
             deleteButton.setOnClickListener { currentItem?.playlist?.let { onDeleteClick(it) } }
             addButton.setOnClickListener { currentItem?.playlist?.let { onAddSoundClick(it) } }
-            favoriteButton.setOnClickListener { currentItem?.playlist?.let { onFavoriteClick(it) } }
+            favoriteButton.setOnClickListener { currentItem?.playlist?.let { onFavoriteClick(it) } } // Обробник для зірочки плейлиста
             expandArrow.setOnClickListener { currentItem?.playlist?.let { onToggleExpandClick(it) } }
             // Клік на весь рядок розгортає/згортає
             itemView.setOnClickListener { currentItem?.playlist?.let { onToggleExpandClick(it) } }
@@ -111,13 +110,16 @@ class PlaylistAdapter(
         fun bind(item: PlaylistItemType.PlaylistHeader) {
             currentItem = item
             nameTextView.text = item.playlist.name
-            // Оновлюємо іконку стрілки
+            // Оновлюю іконку стрілки
             expandArrow.setImageResource(
                 if (item.isExpanded) android.R.drawable.arrow_up_float // Іконка "вгору"
                 else android.R.drawable.arrow_down_float // Іконка "вниз"
             )
-            // TODO: Оновлення стану кнопки "Улюблене" для плейлиста
-            favoriteButton.setImageResource(android.R.drawable.star_off) // Поки що завжди "вимкнено"
+            /// Оновлюю зірочку плейлиста
+            favoriteButton.setImageResource(
+                if (item.playlist.isFavorite) android.R.drawable.star_on
+                else android.R.drawable.star_off
+            )
         }
     }
 
@@ -134,12 +136,12 @@ class PlaylistAdapter(
         private val soundIcon: ImageView = itemView.findViewById(R.id.sound_icon)
         private var currentSound: Sound? = null
         private var currentPlaylistId: Int = -1
-        private var isCurrentlyFavorite: Boolean = false // Зберігаємо стан для передачі
+        private var isCurrentlyFavorite: Boolean = false // Зберігаю стан для передачі
 
         init {
             // Встановлюємо слухачі кліків
             favoriteButton.setOnClickListener {
-                currentSound?.let { onFavoriteClick(it, isCurrentlyFavorite) }
+                currentSound?.let { onFavoriteClick(it, isCurrentlyFavorite) } // Передаю isCurrentlyFavorite в лямбду
             }
             deleteButton.setOnClickListener {
                 currentSound?.let { onDeleteClick(it, currentPlaylistId) }

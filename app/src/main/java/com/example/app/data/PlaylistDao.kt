@@ -28,6 +28,13 @@ interface PlaylistDao {
     @Query("UPDATE playlists SET name = :newName WHERE id = :playlistId")
     suspend fun updatePlaylistName(playlistId: Int, newName: String)
 
+    // --- Оновлені методи для УЛЮБЛЕНИХ ЗВУКІВ ---
+    @Query("UPDATE sounds SET isFavorite = :isFavorite WHERE id = :soundId")
+    suspend fun setSoundFavoriteStatus(soundId: String, isFavorite: Boolean)
+
+    @Query("SELECT * FROM sounds WHERE isFavorite = 1 ORDER BY name ASC")
+    fun getFavoriteSounds(): LiveData<List<Sound>>
+
     // --- Операції зі звуками (потрібні для плейлистів) ---
 
     @Insert(onConflict = OnConflictStrategy.IGNORE) // Додати звук, якщо його ще немає
@@ -45,6 +52,13 @@ interface PlaylistDao {
     // --- Тестові дані (опціонально, для початкового заповнення) ---
     @Query("SELECT COUNT(*) FROM sounds") // Перевірити, чи є звуки в базі
     suspend fun getSoundCount(): Int
+
+    // --- Методи для УЛЮБЛЕНИХ ПЛЕЙЛИСТІВ ---
+    @Query("UPDATE playlists SET isFavorite = :isFavorite WHERE id = :playlistId")
+    suspend fun setPlaylistFavoriteStatus(playlistId: Int, isFavorite: Boolean)
+
+    @Query("SELECT * FROM playlists WHERE isFavorite = 1 ORDER BY name ASC")
+    fun getFavoritePlaylists(): LiveData<List<Playlist>>
 
     @Query("SELECT * FROM sounds WHERE id IN (:soundIds)")
     suspend fun getSoundsByIdsSuspend(soundIds: List<String>): List<Sound> // Потрібна suspend версія
